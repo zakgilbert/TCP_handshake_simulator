@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 
-enum FLAGS
-{
+enum FLAGS {
     FIN,
     SYN,
     RST,
@@ -17,8 +16,7 @@ enum FLAGS
     ACK,
     URG
 };
-enum TCP_STATES
-{
+enum TCP_STATES {
     STATE_SYN,
     STATE_SYN_ACK,
     STATE_ACK
@@ -28,8 +26,7 @@ enum TCP_STATES
 #define SYN_ACK_S ((SYN_S) ^ (1 << ACK))
 #define ACK_S ((0) ^ (1 << ACK))
 
-typedef struct _TCP_Header
-{
+typedef struct _TCP_Header {
     uint16_t src_port;
     uint16_t des_port;
     uint32_t seq_num;
@@ -44,38 +41,34 @@ typedef struct _TCP_Header
 /**
  * Prototypes
  */
-TCP_Header *create_header(int seq, int src_port, int des_port);
-void delete_header(TCP_Header *header);
-void print_header(TCP_Header *hdr, int sending, const char *state);
-void print_header_helper(TCP_Header *hdr, const char *pred, const char *action, const char *host, const char *state);
+TCP_Header* create_header(int seq, int src_port, int des_port);
+void delete_header(TCP_Header* header);
+void print_header(TCP_Header* hdr, int sending, const char* state);
+void print_header_helper(TCP_Header* hdr, const char* pred, const char* action, const char* host, const char* state);
 int establish_connection(int port);
-unsigned char *cpy_header(unsigned char *orig);
-const char *get_state(char flags, int state);
+unsigned char* cpy_header(unsigned char* orig);
+const char* get_state(char flags, int state);
 
-
-TCP_Header *create_header(int seq, int src_port, int des_port)
+TCP_Header* create_header(int seq, int src_port, int des_port)
 {
-    TCP_Header *this = malloc(sizeof(*this));
+    TCP_Header* this = malloc(sizeof(*this));
     memset(this, 0, sizeof(*this));
-    this->seq_num = seq;
+    this->seq_num  = seq;
     this->src_port = src_port;
     this->des_port = des_port;
     return this;
 }
 
-void print_header(TCP_Header *hdr, int sending, const char *state)
+void print_header(TCP_Header* hdr, int sending, const char* state)
 {
-    if (sending)
-    {
+    if (sending) {
         print_header_helper(hdr, "TO", "SENDING", "CLIENT", state);
-    }
-    else
-    {
+    } else {
         print_header_helper(hdr, "FROM", "RECEIVED", "CLIENT", state);
     }
 }
 
-void print_header_helper(TCP_Header *hdr, const char *pred, const char *action, const char *host, const char *state)
+void print_header_helper(TCP_Header* hdr, const char* pred, const char* action, const char* host, const char* state)
 {
     int i, width;
 
@@ -90,15 +83,13 @@ void print_header_helper(TCP_Header *hdr, const char *pred, const char *action, 
     printf("\n  Acknowledgement Number:    %*u", width, hdr->ack_num);
     printf("\n  Offset:                          ");
 
-    for (i = 8; i > 4; i--)
-    {
+    for (i = 8; i > 4; i--) {
         printf("%c", ((hdr->offset) & (1 << i)) ? '1' : '0');
     }
 
     printf("\n Reserved:                         ");
 
-    for (; i > 0; i--)
-    {
+    for (; i > 0; i--) {
         printf("%c", ((hdr->offset) & (1 << i)) ? '1' : '0');
     }
 
@@ -131,83 +122,74 @@ int establish_connection(int port)
 
     printf("Opening Server Socket\n");
 
-    if ((fd_server = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
+    if ((fd_server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     }
 
-    if ((setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) < 0)
-    {
+    if ((setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) < 0) {
     }
 
-    server_address.sin_family = AF_INET;
+    server_address.sin_family      = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(port);
+    server_address.sin_port        = htons(port);
 
     addr_size = sizeof(server_address);
-    if ((bind(fd_server, (struct sockaddr *)&server_address, addr_size)) < 0)
-    {
+    if ((bind(fd_server, (struct sockaddr*)&server_address, addr_size)) < 0) {
     }
 
     printf("Listening for client at port \"%d\"\n", port);
-    if ((listen(fd_server, 3)))
-    {
+    if ((listen(fd_server, 3))) {
     }
 
-    if ((sock = accept(fd_server, (struct sockaddr *)&server_address, &addr_size)) < 0)
-    {
+    if ((sock = accept(fd_server, (struct sockaddr*)&server_address, &addr_size)) < 0) {
     }
     printf("\nHTTP connection Established\n");
     return sock;
 }
 
-unsigned char *cpy_header(unsigned char *orig)
+unsigned char* cpy_header(unsigned char* orig)
 {
     int i, len;
-    unsigned char *dest;
+    unsigned char* dest;
 
-    len = sizeof(orig);
+    len  = sizeof(orig);
     dest = malloc(len);
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         dest[i] = orig[i];
     }
     return dest;
 }
 
-const char *get_state(char flags, int state)
+const char* get_state(char flags, int state)
 {
-    const char *states[3] = {"SYN", "SYN_ACK", "ACK"};
+    const char* states[3] = { "SYN", "SYN_ACK", "ACK" };
     return states[state];
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     int port, sock, state;
-    TCP_Header *header;
-    unsigned char *buffer;
-    TCP_Header *cpy;
+    TCP_Header* header;
+    unsigned char* buffer;
+    TCP_Header* cpy;
 
-    if ((argc != 2) || (sscanf(argv[1], "%d", &port) != 1))
-    {
+    if ((argc != 2) || (sscanf(argv[1], "%d", &port) != 1)) {
         fprintf(stderr, "Usage: %s <integer>\n", argv[0]);
         exit(1);
     }
 
     buffer = malloc(sizeof(TCP_Header));
     srand(time(0));
-    sock = establish_connection(port);
+    sock  = establish_connection(port);
     state = 0;
 
     printf("------------------------------------------------------------------\n");
     printf("Initiating Handshake\n\n");
-    while (state < 3)
-    {
-        switch (state)
-        {
+    while (state < 3) {
+        switch (state) {
         case STATE_SYN:
             recv(sock, buffer, sizeof(*header), 0);
 
-            header = (TCP_Header *)buffer;
+            header = (TCP_Header*)buffer;
             /* If SYN flag is up move to next state */
             state += (header->flags == SYN_S);
             break;
@@ -217,10 +199,10 @@ int main(int argc, char **argv)
 
             header->des_port = header->src_port;
             header->src_port = port;
-            header->ack_num = ++header->seq_num;
-            header->seq_num = rand();
-            header->flags = (header->flags) ^ (1 << ACK);
-            cpy = (TCP_Header *)cpy_header((unsigned char *)header);
+            header->ack_num  = ++header->seq_num;
+            header->seq_num  = rand();
+            header->flags    = (header->flags) ^ (1 << ACK);
+            cpy              = (TCP_Header*)cpy_header((unsigned char*)header);
 
             print_header(header, 1, get_state(header->flags, state++));
             send(sock, header, sizeof(*header), 0);
